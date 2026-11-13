@@ -15,6 +15,7 @@ export function stepCombat(
     shots: 0,
     collected: 0,
     weaponDamage: {},
+    lethal: false,
   };
   const player = doc.player;
   player.invincible = Math.max(0, player.invincible - dt);
@@ -85,5 +86,8 @@ export function stepCombat(
       b.y > -120 &&
       b.y < HEIGHT + 120,
   );
+  // A zeroed life bar is a confirmed, terminal verdict for this combat step.
+  // It is captured here so later reward resolution cannot revive the operator.
+  events.lethal = player.hp <= 0;
   return events;
 }

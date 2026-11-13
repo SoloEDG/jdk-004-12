@@ -11,6 +11,10 @@ export function simulate(doc: GameDoc, input: Input, dt: number) {
   const shots = stepArsenal(doc, input, dt);
   const events = stepCombat(doc, input, dt);
   events.shots += shots;
-  stepProgression(doc, events, dt);
+  // Resolve the lethal verdict before any reward. A confirmed death is terminal:
+  // skip drop generation/collection (heal, magnet, experience) and level-up
+  // choices so nothing in this step can revive the operator or queue upgrades.
+  if (!events.lethal && doc.player.hp > 0)
+    stepProgression(doc, events, dt);
   stepResults(doc, events);
 }

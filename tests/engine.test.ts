@@ -14,6 +14,7 @@ const events = (): FrameEvents => ({
   taken: 0,
   shots: 0,
   collected: 0,
+  lethal: false,
 });
 const enemy = (id = 1) => ({
   id,
@@ -115,4 +116,57 @@ test("weapon damage includes nonlethal hits and ignores overkill", () => {
   stepResults(d, e);
   assert.equal(d.stats.byWeapon.pulse, 20);
   assert.equal(d.stats.kills, 0);
+});
+test("a lethal verdict blocks drops, heal and the upgrade queue", () => {
+  const d = createRun();
+  d.phase = "playing";
+  d.player.hp = 10;
+  d.pendingLevels = 2;
+  d.drops = [
+    { id: 10, x: 500, y: 325, kind: "heal", value: 18, life: 30 },
+    { id: 11, x: 502, y: 325, kind: "xp", value: 50, life: 30 },
+    { id: 12, x: 504, y: 325, kind: "magnet", value: 1, life: 30 },
+  ];
+  const e = events();
+  e.lethal = true;
+  stepProgression(d, e, 0);
+  // Nothing is consumed: heal cannot revive, magnet/xp cannot feed a level-up.
+  assert.equal(d.player.hp, 10);
+  assert.equal(d.drops.length, 3);
+  assert.equal(e.collected, 0);
+  assert.equal(d.phase, "playing");
+  assert.equal(d.choices.length, 0);
+  assert.equal(d.pendingLevels, 2);
+});
+test("the lethal verdict ends the run as defeat even when the final wave clears", () => {
+  const d = createRun();
+  d.phase = "playing";
+  d.victory = true;
+  d.player.hp = 0;
+  d.pendingLevels = 1;
+  const e = events();
+  e.lethal = true;
+  e.taken = 100;
+  stepResults(d, e);
+  assert.equal(d.phase, "ended");
+  assert.equal(d.victory, false);
+  assert.equal(d.pendingLevels, 0);
+  assert.equal(d.records.length, 1);
+  assert.equal(d.records[0].victory, false);
+  assert.equal(d.stats.taken, 100);
+  // Repeated animation frames must never append a second record.
+  stepResults(d, e);
+  assert.equal(d.records.length, 1);
+});
+test("non-lethal damage still lets a heal drop restore life", () => {
+  const d = createRun();
+  d.phase = "playing";
+  d.player.hp = 40;
+  d.drops = [{ id: 9, x: 500, y: 325, kind: "heal", value: 18, life: 30 }];
+  const e = events();
+  stepProgression(d, e, 0);
+  assert.equal(d.player.hp, 58);
+  assert.equal(e.collected, 1);
+  assert.equal(d.drops.length, 0);
+  assert.equal(d.phase, "playing");
 });

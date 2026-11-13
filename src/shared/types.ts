@@ -106,6 +106,12 @@ export interface FrameEvents {
   taken: number;
   shots: number;
   collected: number;
+  /**
+   * Confirmed by the combat step once the life bar reaches zero. This is the
+   * terminal verdict for the step: rewards resolved afterwards (heal, magnet,
+   * experience/level-up) must never be able to revoke it.
+   */
+  lethal: boolean;
 }
 export const WIDTH = 1000;
 export const HEIGHT = 650;
